@@ -1,0 +1,447 @@
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:math' as math;
+import 'package:intl/intl.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    if (kIsWeb) {
+      await Firebase.initializeApp(
+        options: const FirebaseOptions(
+          apiKey: "AIzaSyBZ2QYMACuC7HYBcDsoUbIXMuP-eCZwmSw",
+          authDomain: "estacionmeteosanromanvega.firebaseapp.com",
+          projectId: "estacionmeteosanromanvega",
+          storageBucket: "estacionmeteosanromanvega.firebasestorage.app",
+          messagingSenderId: "491545839443",
+          appId: "1:491545839443:web:dbae0b6aaf7e9f863403a6",
+        ),
+      );
+    } else {
+      await Firebase.initializeApp();
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      print("Error inicializando Firebase: $e");
+    }
+  }
+  runApp(const MiAppMeteo());
+}
+
+class MiAppMeteo extends StatelessWidget {
+  const MiAppMeteo({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Meteo San Román',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      home: const PantallaPrincipal(),
+    );
+  }
+}
+
+class PantallaPrincipal extends StatelessWidget {
+  const PantallaPrincipal({super.key});
+
+  final String urlFondo = "https://raw.githubusercontent.com/valtuille9-arch/fondos-app/b8eb11ee9c385046e655624a702a3ee40ec6191d/palacio-arzobispal-y.jpg";
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: const Text(
+          'San Román de la Vega',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w300, fontSize: 24),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.network(
+              urlFondo,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(color: Colors.blueGrey),
+            ),
+          ),
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withValues(alpha: 0.4),
+            ),
+          ),
+          StreamBuilder<DocumentSnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('clima_actual')
+                .doc('outdoor')
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator(color: Colors.white));
+              }
+              if (!snapshot.hasData || !snapshot.data!.exists) {
+                return const Center(child: Text('Esperando datos...', style: TextStyle(color: Colors.white)));
+              }
+
+              var d = snapshot.data!.data() as Map<String, dynamic>;
+              String temp = double.tryParse(d['temperatura'].toString())?.toStringAsFixed(1) ?? '--';
+              
+              return SingleChildScrollView(
+                padding: const EdgeInsets.only(top: 120, left: 16, right: 16, bottom: 40),
+                child: Column(
+                  children: [
+                    Text(
+                      "$temp°",
+                      style: const TextStyle(fontSize: 100, fontWeight: FontWeight.w200, color: Colors.white),
+                    ),
+                    const SizedBox(height: 30),
+                    GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 20,
+                      crossAxisSpacing: 10,
+                      childAspectRatio: 0.85,
+                      children: [
+                        _miniDato("Sensación", "${d['sensacion'] ?? '--'}°C", Icons.thermostat),
+                        _miniDato("Rocío", "${d['dew_point'] ?? '--'}°C", Icons.water),
+                        _miniDato("Humedad", "${d['humedad'] ?? '--'}%", Icons.water_drop),
+                        _miniDato("Lluvia Hoy", "${d['lluvia_dia'] ?? '--'}mm", Icons.umbrella),
+                        _miniDato("Presión", "${d['presion'] ?? '--'}", Icons.compress),
+                        _miniDato("UV", "${d['uvi'] ?? '--'}", Icons.wb_sunny),
+                        _miniDato("Viento", "${d['viento'] ?? '--'}km/h", Icons.air),
+                        _miniDato("Ráfaga", "${d['viento_racha'] ?? '--'}", Icons.wind_power),
+                        _miniDato("Solar", "${d['solar'] ?? '--'}w/m²", Icons.light_mode),
+                      ],
+                    ),
+                    const SizedBox(height: 25),
+                    _tarjetaLarga("Tasa de Lluvia", "${d['lluvia_rate'] ?? '0'} mm/h", Icons.thunderstorm),
+                    _tarjetaLarga("Dirección Viento", "${d['viento_dir'] ?? '0'}°", Icons.explore),
+                    
+                    const SeccionSolar(),
+                    const SeccionLuna(),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _miniDato(String label, String valor, IconData icono) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icono, color: Colors.white70, size: 28),
+        const SizedBox(height: 6),
+        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+        Text(
+          valor, 
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
+
+  Widget _tarjetaLarga(String label, String valor, IconData icono) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Row(
+        children: [
+          Icon(icono, color: Colors.white70),
+          const SizedBox(width: 20),
+          Text(label, style: const TextStyle(color: Colors.white, fontSize: 16)),
+          const Spacer(),
+          Text(
+            valor, 
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class SeccionSolar extends StatelessWidget {
+  const SeccionSolar({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final ahora = DateTime.now();
+    int diaDelAnio = int.parse(DateFormat("D").format(ahora));
+    const double lat = 42.4833;
+    const double lon = -5.9333;
+    const double zenit = 90.833;
+
+    double gamma = 2 * math.pi / 365 * (diaDelAnio - 1 + (ahora.hour - 12) / 24);
+    double eqtime = 229.18 * (0.000075 + 0.001868 * math.cos(gamma) - 0.032077 * math.sin(gamma) 
+                    - 0.014615 * math.cos(2 * gamma) - 0.040849 * math.sin(2 * gamma));
+    double decl = 0.006918 - 0.399912 * math.cos(gamma) + 0.070257 * math.sin(gamma) 
+                  - 0.006758 * math.cos(2 * gamma) + 0.000907 * math.sin(2 * gamma);
+
+    double cosHa = (math.cos(zenit * math.pi / 180) / (math.cos(lat * math.pi / 180) * math.cos(decl))) 
+                   - (math.tan(lat * math.pi / 180) * math.tan(decl));
+    
+    cosHa = cosHa.clamp(-1.0, 1.0);
+    double ha = math.acos(cosHa) * 180 / math.pi;
+
+    double sunriseUTC = 720 - 4 * (lon + ha) - eqtime;
+    double sunsetUTC = 720 - 4 * (lon - ha) - eqtime;
+
+    int offsetMinutos = ahora.timeZoneOffset.inMinutes;
+    final amanecer = DateTime(ahora.year, ahora.month, ahora.day).add(Duration(minutes: sunriseUTC.toInt() + offsetMinutos));
+    final atardecer = DateTime(ahora.year, ahora.month, ahora.day).add(Duration(minutes: sunsetUTC.toInt() + offsetMinutos));
+
+    double progreso = 0.0;
+    if (ahora.isAfter(amanecer) && ahora.isBefore(atardecer)) {
+      int total = atardecer.difference(amanecer).inMinutes;
+      int transcurrido = ahora.difference(amanecer).inMinutes;
+      progreso = transcurrido / total;
+    } else if (ahora.isAfter(atardecer)) {
+      progreso = 1.0;
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          const Text("Trayectoria Solar (León)", style: TextStyle(color: Colors.white70, fontSize: 14)),
+          const SizedBox(height: 30),
+          SizedBox(
+            height: 80,
+            width: double.infinity,
+            child: CustomPaint(painter: ArcoSolarPainter(progreso)),
+          ),
+          const SizedBox(height: 15),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _columnaDato("Salida", DateFormat('HH:mm').format(amanecer)),
+              _columnaDato("Puesta", DateFormat('HH:mm').format(atardecer)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _columnaDato(String titulo, String valor) {
+    return Column(
+      children: [
+        Text(titulo, style: const TextStyle(color: Colors.white60, fontSize: 11)),
+        Text(valor, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+      ],
+    );
+  }
+}
+
+class ArcoSolarPainter extends CustomPainter {
+  final double progreso;
+  ArcoSolarPainter(this.progreso);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paintFondo = Paint()
+      ..color = Colors.white.withValues(alpha: 0.1)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
+
+    Path path = Path();
+    path.addArc(Rect.fromLTWH(0, 0, size.width, size.height * 2), math.pi, math.pi);
+    canvas.drawPath(path, paintFondo);
+
+    double angulo = math.pi + (progreso * math.pi);
+    double x = (size.width / 2) + (size.width / 2) * math.cos(angulo);
+    double y = (size.height) + (size.height) * math.sin(angulo);
+
+    if (progreso > 0 && progreso < 1) {
+      canvas.drawCircle(Offset(x, y), 8, Paint()..color = Colors.amber);
+      canvas.drawCircle(Offset(x, y), 12, Paint()..color = Colors.amber.withValues(alpha: 0.3));
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => true;
+}
+
+class SeccionLuna extends StatelessWidget {
+  const SeccionLuna({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final ahora = DateTime.now();
+    DateTime refDate = DateTime.utc(2000, 1, 6, 18, 14);
+    double synodicMonth = 29.530588853;
+    double diff = ahora.toUtc().difference(refDate).inSeconds / 86400.0;
+    double phase = (diff / synodicMonth) % 1.0;
+    if (phase < 0) { phase += 1.0; }
+    
+    double iluminacion = (1 - math.cos(2 * math.pi * phase)) / 2 * 100;
+    double edadLuna = phase * synodicMonth;
+
+    int baseRiseMinutes = 424; 
+    int riseShift = (edadLuna * 50.4).toInt();
+    final salidaLuna = DateTime(ahora.year, ahora.month, ahora.day, 0, 0).add(Duration(minutes: baseRiseMinutes + riseShift));
+    final puestaLuna = salidaLuna.add(const Duration(hours: 12, minutes: 30));
+
+    double progresoLunar = 0.0;
+    if (ahora.isAfter(salidaLuna) && ahora.isBefore(puestaLuna)) {
+      int total = puestaLuna.difference(salidaLuna).inMinutes;
+      int transcurrido = ahora.difference(salidaLuna).inMinutes;
+      progresoLunar = transcurrido / total;
+    } else if (ahora.isAfter(puestaLuna)) {
+      progresoLunar = 1.0;
+    }
+
+    String nombreFase = "";
+    if (edadLuna < 1.84) { nombreFase = "Luna Nueva"; }
+    else if (edadLuna < 5.53) { nombreFase = "Luna Creciente"; }
+    else if (edadLuna < 9.22) { nombreFase = "Cuarto Creciente"; }
+    else if (edadLuna < 12.91) { nombreFase = "Creciente Gibosa"; }
+    else if (edadLuna < 16.60) { nombreFase = "Luna Llena"; }
+    else if (edadLuna < 20.29) { nombreFase = "Menguante Gibosa"; }
+    else if (edadLuna < 23.98) { nombreFase = "Cuarto Menguante"; }
+    else if (edadLuna < 27.67) { nombreFase = "Luna Menguante"; }
+    else { nombreFase = "Luna Nueva"; }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Trayectoria Lunar", style: TextStyle(color: Colors.white70, fontSize: 14)),
+                  Text("$nombreFase (${iluminacion.toStringAsFixed(1)}%)", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                ],
+              ),
+              SizedBox(width: 45, height: 45, child: CustomPaint(painter: LunaRealistaPainter(phase))),
+            ],
+          ),
+          const SizedBox(height: 35),
+          SizedBox(height: 80, width: double.infinity, child: CustomPaint(painter: ArcoLunarPainter(progresoLunar))),
+          const SizedBox(height: 15),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _columnaDato("Salida Luna", DateFormat('HH:mm').format(salidaLuna)),
+              _columnaDato("Puesta Luna", DateFormat('HH:mm').format(puestaLuna)),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _columnaDato(String titulo, String valor) {
+    return Column(
+      children: [
+        Text(titulo, style: const TextStyle(color: Colors.white60, fontSize: 11)),
+        Text(valor, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+      ],
+    );
+  }
+}
+
+class ArcoLunarPainter extends CustomPainter {
+  final double progreso;
+  ArcoLunarPainter(this.progreso);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paintFondo = Paint()..color = Colors.white.withValues(alpha: 0.05)..style = PaintingStyle.stroke..strokeWidth = 2;
+    final paintLuna = Paint()..color = const Color(0xFFE0F7FA);
+
+    Path path = Path();
+    path.addArc(Rect.fromLTWH(0, 0, size.width, size.height * 2), math.pi, math.pi);
+    canvas.drawPath(path, paintFondo);
+
+    double angulo = math.pi + (progreso * math.pi);
+    double x = (size.width / 2) + (size.width / 2) * math.cos(angulo);
+    double y = (size.height) + (size.height) * math.sin(angulo);
+
+    if (progreso > 0 && progreso < 1) {
+      canvas.drawCircle(Offset(x, y), 6, paintLuna);
+      canvas.drawCircle(Offset(x, y), 10, Paint()..color = paintLuna.color.withValues(alpha: 0.2));
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => true;
+}
+
+class LunaRealistaPainter extends CustomPainter {
+  final double fase;
+  LunaRealistaPainter(this.fase);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    double centroX = size.width / 2;
+    double centroY = size.height / 2;
+    double radio = size.width / 2.2;
+
+    final paintOscuro = Paint()..color = Colors.black.withValues(alpha: 0.5);
+    final paintBrillante = Paint()
+      ..shader = const RadialGradient(
+        radius: 0.9,
+        colors: [Color(0xFFFFFDE7), Color(0xFFFFF8E1)],
+      ).createShader(Rect.fromCircle(center: Offset(centroX, centroY), radius: radio));
+    
+    canvas.drawCircle(Offset(centroX, centroY), radio, paintOscuro);
+    double cosFase = math.cos(2 * math.pi * fase);
+    
+    for (double i = -radio; i <= radio; i++) {
+      double x = i;
+      double yLimit = math.sqrt(radio * radio - x * x);
+      double xMover = x * cosFase;
+      if (fase <= 0.5) {
+        canvas.drawRect(Rect.fromLTRB(centroX + xMover.clamp(0, radio), centroY - yLimit, centroX + radio, centroY + yLimit), paintBrillante);
+        if (cosFase < 0) {
+          canvas.drawRect(Rect.fromLTRB(centroX + xMover, centroY - yLimit, centroX, centroY + yLimit), paintBrillante);
+        }
+      } else {
+        canvas.drawRect(Rect.fromLTRB(centroX - radio, centroY - yLimit, centroX + xMover.clamp(-radio, 0), centroY + yLimit), paintBrillante);
+        if (cosFase < 0) {
+          canvas.drawRect(Rect.fromLTRB(centroX, centroY - yLimit, centroX + xMover, centroY + yLimit), paintBrillante);
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => true;
+}
