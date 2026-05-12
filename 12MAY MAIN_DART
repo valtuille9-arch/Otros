@@ -88,66 +88,52 @@ class PantallaPrincipal extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: Stack(
-        children: [
-          StreamBuilder<DocumentSnapshot>(
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('app_config')
+            .doc('fondos')
+            .snapshots(),
+        builder: (context, snapshotFondos) {
+          // Primero cargamos los fondos para que la app tenga imagen desde el segundo 1
+          var f = snapshotFondos.data?.data() as Map<String, dynamic>?;
+          String imgPrincipal = f?['url_main'] ?? urlFondo;
+          String imgLuna = f?['url_luna'] ?? "";
+
+          return StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('clima_actual')
                 .doc('outdoor')
                 .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
+            builder: (context, snapshotClima) {
+              if (snapshotClima.hasError) {
+                return Center(child: Text('Error Clima: ${snapshotClima.error}'));
               }
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(
-                  child: CircularProgressIndicator(color: Colors.white),
-                );
-              }
-              if (!snapshot.hasData || !snapshot.data!.exists) {
-                return const Center(
-                  child: Text(
-                    'Esperando datos...',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                );
+              if (snapshotClima.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator(color: Colors.white));
               }
 
-              // AQUÍ definimos 'd' para que todo lo de abajo lo reconozca
-              var d = snapshot.data!.data() as Map<String, dynamic>;
-              String temp =
-                  double.tryParse(
-                    d['temperatura'].toString(),
-                  )?.toStringAsFixed(1) ??
-                  '--';
+              // Datos del clima
+              var d = snapshotClima.data?.data() as Map<String, dynamic>? ?? {};
+              String temp = double.tryParse(d['temperatura'].toString())?.toStringAsFixed(1) ?? '--';
 
               return Stack(
                 children: [
-                  // 1. FONDO DINÁMICO (Capa inferior)
+                  // 1. FONDO PRINCIPAL (De la colección segura)
                   Positioned.fill(
                     child: CachedNetworkImage(
-                      imageUrl: d['url_fondo'] ?? urlFondo,
+                      imageUrl: imgPrincipal,
                       fit: BoxFit.cover,
-                      placeholder: (context, url) =>
-                          Container(color: Colors.black),
-                      errorWidget: (context, url, error) =>
-                          Container(color: Colors.blueGrey),
+                      placeholder: (context, url) => Container(color: Colors.black),
+                      errorWidget: (context, url, error) => Container(color: Colors.blueGrey),
                     ),
                   ),
                   // 2. CAPA OSCURA
                   Positioned.fill(
-                    child: Container(
-                      color: Colors.black.withValues(alpha: 0.4),
-                    ),
+                    child: Container(color: Colors.black.withValues(alpha: 0.4)),
                   ),
-                  // 3. CONTENIDO (Capa superior)
+                  // 3. CONTENIDO
                   SingleChildScrollView(
-                    padding: const EdgeInsets.only(
-                      top: 140,
-                      left: 16,
-                      right: 16,
-                      bottom: 40,
-                    ),
+                    padding: const EdgeInsets.only(top: 140, left: 16, right: 16, bottom: 40),
                     child: Column(
                       children: [
                         Text(
@@ -167,78 +153,33 @@ class PantallaPrincipal extends StatelessWidget {
                           crossAxisSpacing: 10,
                           childAspectRatio: 0.85,
                           children: [
-                            _miniDato(
-                              "Sensación",
-                              "${d['sensacion'] ?? '--'}°C",
-                              Icons.thermostat,
-                            ),
-                            _miniDato(
-                              "Rocío",
-                              "${d['dew_point'] ?? '--'}°C",
-                              Icons.water,
-                            ),
-                            _miniDato(
-                              "Humedad",
-                              "${d['humedad'] ?? '--'}%",
-                              Icons.water_drop,
-                            ),
-                            _miniDato(
-                              "Lluvia Hoy",
-                              "${d['lluvia_dia'] ?? '--'}mm",
-                              Icons.umbrella,
-                            ),
-                            _miniDato(
-                              "Presión",
-                              "${d['presion'] ?? '--'}",
-                              Icons.compress,
-                            ),
-                            _miniDato(
-                              "UV",
-                              "${d['uvi'] ?? '--'}",
-                              Icons.wb_sunny,
-                            ),
-                            _miniDato(
-                              "Viento",
-                              "${d['viento'] ?? '--'}km/h",
-                              Icons.air,
-                            ),
-                            _miniDato(
-                              "Ráfaga",
-                              "${d['viento_racha'] ?? '--'}",
-                              Icons.wind_power,
-                            ),
-                            _miniDato(
-                              "Solar",
-                              "${d['solar'] ?? '--'}w/m²",
-                              Icons.light_mode,
-                            ),
+                            _miniDato("Sensación", "${d['sensacion'] ?? '--'}°C", Icons.thermostat),
+                            _miniDato("Rocío", "${d['dew_point'] ?? '--'}°C", Icons.water),
+                            _miniDato("Humedad", "${d['humedad'] ?? '--'}%", Icons.water_drop),
+                            _miniDato("Lluvia Hoy", "${d['lluvia_dia'] ?? '--'}mm", Icons.umbrella),
+                            _miniDato("Presión", "${d['presion'] ?? '--'}", Icons.compress),
+                            _miniDato("UV", "${d['uvi'] ?? '--'}", Icons.wb_sunny),
+                            _miniDato("Viento", "${d['viento'] ?? '--'}km/h", Icons.air),
+                            _miniDato("Ráfaga", "${d['viento_racha'] ?? '--'}", Icons.wind_power),
+                            _miniDato("Solar", "${d['solar'] ?? '--'}w/m²", Icons.light_mode),
                           ],
                         ),
                         const SizedBox(height: 25),
-                        _tarjetaLarga(
-                          "Tasa de Lluvia",
-                          "${d['lluvia_rate'] ?? '0'} mm/h",
-                          Icons.thunderstorm,
-                        ),
-                        _tarjetaLarga(
-                          "Dirección Viento",
-                          "${d['viento_dir'] ?? '0'}°",
-                          Icons.explore,
-                        ),
+                        _tarjetaLarga("Tasa de Lluvia", "${d['lluvia_rate'] ?? '0'} mm/h", Icons.thunderstorm),
+                        _tarjetaLarga("Dirección Viento", "${d['viento_dir'] ?? '0'}°", Icons.explore),
                         const SeccionSolar(),
-                        FichaLunarEstelar(urlFondo: d['url_fondo_luna'] ?? ""),
+                        FichaLunarEstelar(urlFondo: imgLuna),
                       ],
                     ),
                   ),
                 ],
               );
             },
-          ),
-        ],
+          );
+        },
       ),
     );
   }
-
   Widget _miniDato(String label, String valor, IconData icono) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
