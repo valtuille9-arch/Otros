@@ -97,8 +97,7 @@ class PantallaPrincipal extends StatelessWidget {
           // Primero cargamos los fondos para que la app tenga imagen desde el segundo 1
           var f = snapshotFondos.data?.data() as Map<String, dynamic>?;
           String imgPrincipal = f?['url_main'] ?? urlFondo;
-          String imgLuna = f?['url_luna'] ?? "";
-
+          
           return StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('clima_actual')
@@ -168,7 +167,7 @@ class PantallaPrincipal extends StatelessWidget {
                         _tarjetaLarga("Tasa de Lluvia", "${d['lluvia_rate'] ?? '0'} mm/h", Icons.thunderstorm),
                         _tarjetaLarga("Dirección Viento", "${d['viento_dir'] ?? '0'}°", Icons.explore),
                         const SeccionSolar(),
-                        FichaLunarEstelar(urlFondo: imgLuna),
+                        FichaLunarEstelar(urlFondo: f?['url_luna'] ?? ""),
                       ],
                     ),
                   ),
@@ -384,6 +383,7 @@ class ArcoSolarPainter extends CustomPainter {
 
 class FichaLunarEstelar extends StatelessWidget {
   final String urlFondo;
+
   const FichaLunarEstelar({super.key, required this.urlFondo});
 
   Map<String, dynamic> calcularDatosLunares() {
@@ -392,9 +392,7 @@ class FichaLunarEstelar extends StatelessWidget {
     double synodicMonth = 29.530588853;
     double diff = now.toUtc().difference(refDate).inSeconds / 86400.0;
     double phase = (diff / synodicMonth) % 1.0;
-    if (phase < 0) {
-      phase += 1.0;
-    }
+    if (phase < 0) phase += 1.0;
 
     double edadLuna = phase * synodicMonth;
     double iluminacion = (1 - math.cos(2 * math.pi * phase)) / 2 * 100;
@@ -405,18 +403,8 @@ class FichaLunarEstelar extends StatelessWidget {
         "${NumberFormat('#,###', 'es_ES').format(distanciaKm)} Km";
 
     List<String> signos = [
-      "Aries ♈",
-      "Tauro ♉",
-      "Géminis ♊",
-      "Cáncer ♋",
-      "Leo ♌",
-      "Virgo ♍",
-      "Libra ♎",
-      "Escorpio ♏",
-      "Sagitario ♐",
-      "Capricornio ♑",
-      "Acuario ♒",
-      "Piscis ♓",
+      "Aries ♈", "Tauro ♉", "Géminis ♊", "Cáncer ♋", "Leo ♌", "Virgo ♍",
+      "Libra ♎", "Escorpio ♏", "Sagitario ♐", "Capricornio ♑", "Acuario ♒", "Piscis ♓",
     ];
     int indexSigno = (((diff + 9.2) % 27.3216) / 2.276).floor() % 12;
 
@@ -453,17 +441,14 @@ class FichaLunarEstelar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var datos = calcularDatosLunares();
-    double phase = datos['progreso'];
-
+    final datos = calcularDatosLunares();
+    final phase = datos['progreso'] as double;
     final ahora = DateTime.now();
+
     int baseRiseMinutes = 424;
     int riseShift = (double.parse(datos['edad']) * 50.4).toInt();
-    final salidaLuna = DateTime(
-      ahora.year,
-      ahora.month,
-      ahora.day,
-    ).add(Duration(minutes: baseRiseMinutes + riseShift));
+    final salidaLuna = DateTime(ahora.year, ahora.month, ahora.day)
+        .add(Duration(minutes: baseRiseMinutes + riseShift));
     final puestaLuna = salidaLuna.add(const Duration(hours: 12, minutes: 30));
 
     double progresoArco = 0.0;
@@ -473,123 +458,117 @@ class FichaLunarEstelar extends StatelessWidget {
       progresoArco = transcurrido / total;
     }
 
+    final String urlFinal = urlFondo.isNotEmpty 
+        ? urlFondo 
+        : "https://www.solarsystemscope.com/textures/download/2k_stars_milky_way.jpg";
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 15),
-      padding: const EdgeInsets.all(25),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(30),
-        image: DecorationImage(
-          image: CachedNetworkImageProvider(urlFondo),
-          fit: BoxFit.cover,
-          opacity: 0.5,
-        ),
-        color: Colors.transparent,
+        color: Colors.white,
       ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.stars, color: Colors.white30, size: 18),
-              const SizedBox(width: 8),
-              Text(
-                datos['signo'],
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w300,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(30),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: CachedNetworkImage(
+                imageUrl: urlFinal,
+                fit: BoxFit.cover,
+                errorWidget: (context, url, error) => Image.asset(
+                  'assets/luna_fondo_default.jpg',
+                  fit: BoxFit.cover,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              SizedBox(
-                height: 100,
-                width: double.infinity,
-                child: CustomPaint(painter: ArcoLunarPainter(progresoArco)),
-              ),
-              Stack(
-                alignment: Alignment.center,
+            ),
+            Positioned.fill(
+              child: Container(color: Colors.black.withValues(alpha: 0.5)),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(25),
+              child: Column(
                 children: [
-                  ClipOval(
-                    child: Image.asset(
-                      'assets/luna_real.png',
-                      height: 120,
-                      width: 120,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => const Icon(
-                        Icons.nightlight_round,
-                        color: Colors.white24,
-                        size: 80,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.stars, color: Colors.white30, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        datos['signo'],
+                        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w300),
                       ),
-                    ),
+                    ],
                   ),
-                  CustomPaint(
-                    size: const Size(120, 120),
-                    painter: SombraLunarPainter(phase),
+                  const SizedBox(height: 20),
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        height: 100,
+                        width: double.infinity,
+                        child: CustomPaint(painter: ArcoLunarPainter(progresoArco)),
+                      ),
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          ClipOval(
+                            child: Image.asset(
+                              'assets/luna_real.png',
+                              height: 120, width: 120, fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => 
+                                const Icon(Icons.nightlight_round, color: Colors.white24, size: 80),
+                            ),
+                          ),
+                          CustomPaint(
+                            size: const Size(120, 120),
+                            painter: SombraLunarPainter(phase),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 15),
+                  Text(
+                    datos['fase'],
+                    style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    "Iluminación: ${datos['iluminacion']}%",
+                    style: const TextStyle(color: Colors.white54, fontSize: 16),
+                  ),
+                  const Divider(color: Colors.white10, height: 40, thickness: 1),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _fichaDato("EDAD LUNAR", "${datos['edad']} d"),
+                      _fichaDato("DISTANCIA", datos['distancia']),
+                      _fichaDato("ESTADO", "Visible"),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _fichaDato("SALIDA LUNA", DateFormat('HH:mm').format(salidaLuna)),
+                      _fichaDato("PUESTA LUNA", DateFormat('HH:mm').format(puestaLuna)),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
-          const SizedBox(height: 15),
-          Text(
-            datos['fase'],
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
             ),
-          ),
-          Text(
-            "Iluminación: ${datos['iluminacion']}%",
-            style: const TextStyle(color: Colors.white54, fontSize: 16),
-          ),
-          const Divider(color: Colors.white10, height: 40, thickness: 1),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _fichaDato("EDAD LUNAR", "${datos['edad']} d"),
-              _fichaDato("DISTANCIA", datos['distancia']),
-              _fichaDato("ESTADO", "Visible"),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _fichaDato("SALIDA LUNA", DateFormat('HH:mm').format(salidaLuna)),
-              _fichaDato("PUESTA LUNA", DateFormat('HH:mm').format(puestaLuna)),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _fichaDato(String etiqueta, String valor) {
+  Widget _fichaDato(String titulo, String valor) {
     return Column(
       children: [
-        Text(
-          etiqueta,
-          style: const TextStyle(
-            color: Colors.white38,
-            fontSize: 10,
-            letterSpacing: 0.5,
-          ),
-        ),
+        Text(titulo, style: const TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
-        Text(
-          valor,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        Text(valor, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
       ],
     );
   }
