@@ -1,0 +1,1 @@
+Caché: Gracias a CachedNetworkImage, la foto de la ciudad no se descargará cada vez. Se queda guardada en el móvil y solo se actualizará si tú cambias la URL en Firestore (por ejemplo, añadiendo el ?v=2 que comentamos antes).
