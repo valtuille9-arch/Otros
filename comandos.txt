@@ -5,3 +5,5 @@ PARA VERLO EN LA WEB: flutter run -d web-server --web-port 8080 --web-hostname 0
 PARA GENERAR EL APK: flutter build apk --release --no-tree-shake-icons
 
 PARA ENCONTAR UN ARCHIVO: find . -name "app_icon.png"
+
+PARA FINALIZAR LA CONEXIÓN EB: fuser -k 8080/tcp
