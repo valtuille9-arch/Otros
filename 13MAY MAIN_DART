@@ -55,42 +55,55 @@ class PantallaPrincipal extends StatelessWidget {
   const PantallaPrincipal({super.key});
 
   final String urlFondoDefecto =
-      "https://raw.githubusercontent.com/valtuille9-arch/fondos-app/b6b6321cb7e360408e8f7b9391174c27e6af660c/fondo_principal.jpg";
+      "https://raw.githubusercontent.com/valtuille9-arch/fondos-app/main/fondo_principal.jpg";
 
   @override
   Widget build(BuildContext context) {
     // 1. Primer Stream: Fondos de pantalla
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance.collection('app_config').doc('fondos').snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('app_config')
+          .doc('fondos')
+          .snapshots(),
       builder: (context, snapshotFondos) {
         var f = snapshotFondos.data?.data() as Map<String, dynamic>?;
         final rawMain = f?['url_main']?.toString();
         final rawLuna = f?['url_luna']?.toString();
 
-         // Si la cadena es nula O está vacía, usamos el valor por defecto
-        String imgPrincipal = (rawMain != null && rawMain.isNotEmpty) ? rawMain : urlFondoDefecto;
+        // Si la cadena es nula O está vacía, usamos el valor por defecto
+        String imgPrincipal = (rawMain != null && rawMain.isNotEmpty)
+            ? rawMain
+            : urlFondoDefecto;
         String imgLuna = (rawLuna != null && rawLuna.isNotEmpty) ? rawLuna : "";
 
         // 2. Segundo Stream: Datos del clima (Outdoor)
         return StreamBuilder<DocumentSnapshot>(
-          stream: FirebaseFirestore.instance.collection('clima_actual').doc('outdoor').snapshots(),
+          stream: FirebaseFirestore.instance
+              .collection('clima_actual')
+              .doc('outdoor')
+              .snapshots(),
           builder: (context, snapshotClima) {
-            
             String fechaTexto = "Sincronizando...";
             String temp = "--";
             Map<String, dynamic> d = {};
 
             if (snapshotClima.hasData && snapshotClima.data!.exists) {
               d = snapshotClima.data!.data() as Map<String, dynamic>;
-              
+
               // Formatear temperatura
-              temp = double.tryParse(d['temperatura'].toString())?.toStringAsFixed(1) ?? '--';
+              temp =
+                  double.tryParse(
+                    d['temperatura'].toString(),
+                  )?.toStringAsFixed(1) ??
+                  '--';
 
               // Formatear Timestamp de la estación
               final dynamic tsRaw = d['timestamp'];
               if (tsRaw != null) {
                 int ts = int.tryParse(tsRaw.toString()) ?? 0;
-                fechaTexto = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.fromMillisecondsSinceEpoch(ts));
+                fechaTexto = DateFormat(
+                  'dd/MM/yyyy HH:mm',
+                ).format(DateTime.fromMillisecondsSinceEpoch(ts));
               }
             }
 
@@ -102,7 +115,11 @@ class PantallaPrincipal extends StatelessWidget {
                   children: [
                     const Text(
                       'San Román de la Vega',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w300, fontSize: 24),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w300,
+                        fontSize: 24,
+                      ),
                     ),
                     Text(
                       "Última actualización: $fechaTexto",
@@ -125,20 +142,31 @@ class PantallaPrincipal extends StatelessWidget {
                     child: CachedNetworkImage(
                       imageUrl: imgPrincipal,
                       fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(color: Colors.black),
-                      errorWidget: (context, url, error) => Container(color: Colors.blueGrey),
+                      placeholder: (context, url) =>
+                          Container(color: Colors.black),
+                      errorWidget: (context, url, error) =>
+                          Container(color: Colors.blueGrey),
                     ),
                   ),
                   // Capa 2: Filtro oscuro para legibilidad
                   Positioned.fill(
-                    child: Container(color: Colors.black.withValues(alpha: 0.4)),
+                    child: Container(
+                      color: Colors.black.withValues(alpha: 0.4),
+                    ),
                   ),
                   // Capa 3: Contenido de datos
                   if (snapshotClima.connectionState == ConnectionState.waiting)
-                    const Center(child: CircularProgressIndicator(color: Colors.white))
+                    const Center(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    )
                   else
                     SingleChildScrollView(
-                      padding: const EdgeInsets.only(top: 140, left: 16, right: 16, bottom: 40),
+                      padding: const EdgeInsets.only(
+                        top: 140,
+                        left: 16,
+                        right: 16,
+                        bottom: 40,
+                      ),
                       child: Column(
                         children: [
                           Text(
@@ -158,20 +186,64 @@ class PantallaPrincipal extends StatelessWidget {
                             crossAxisSpacing: 10,
                             childAspectRatio: 0.85,
                             children: [
-                              _miniDato("Sensación", "${d['sensacion'] ?? '--'}°C", Icons.thermostat),
-                              _miniDato("Rocío", "${d['dew_point'] ?? '--'}°C", Icons.water),
-                              _miniDato("Humedad", "${d['humedad'] ?? '--'}%", Icons.water_drop),
-                              _miniDato("Lluvia Hoy", "${d['lluvia_dia'] ?? '--'}mm", Icons.umbrella),
-                              _miniDato("Presión", "${d['presion'] ?? '--'}", Icons.compress),
-                              _miniDato("UV", "${d['uvi'] ?? '--'}", Icons.wb_sunny),
-                              _miniDato("Viento", "${d['viento'] ?? '--'}km/h", Icons.air),
-                              _miniDato("Ráfaga", "${d['viento_racha'] ?? '--'}", Icons.wind_power),
-                              _miniDato("Solar", "${d['solar'] ?? '--'}w/m²", Icons.light_mode),
+                              _miniDato(
+                                "Sensación",
+                                "${d['sensacion'] ?? '--'}°C",
+                                Icons.thermostat,
+                              ),
+                              _miniDato(
+                                "Rocío",
+                                "${d['dew_point'] ?? '--'}°C",
+                                Icons.water,
+                              ),
+                              _miniDato(
+                                "Humedad",
+                                "${d['humedad'] ?? '--'}%",
+                                Icons.water_drop,
+                              ),
+                              _miniDato(
+                                "Lluvia Hoy",
+                                "${d['lluvia_dia'] ?? '--'}mm",
+                                Icons.umbrella,
+                              ),
+                              _miniDato(
+                                "Presión",
+                                "${d['presion'] ?? '--'}",
+                                Icons.compress,
+                              ),
+                              _miniDato(
+                                "UV",
+                                "${d['uvi'] ?? '--'}",
+                                Icons.wb_sunny,
+                              ),
+                              _miniDato(
+                                "Viento",
+                                "${d['viento'] ?? '--'}km/h",
+                                Icons.air,
+                              ),
+                              _miniDato(
+                                "Ráfaga",
+                                "${d['viento_racha'] ?? '--'}",
+                                Icons.wind_power,
+                              ),
+                              _miniDato(
+                                "Solar",
+                                "${d['solar'] ?? '--'}w/m²",
+                                Icons.light_mode,
+                              ),
                             ],
                           ),
                           const SizedBox(height: 25),
-                          _tarjetaLarga("Tasa de Lluvia", "${d['lluvia_rate'] ?? '0'} mm/h", Icons.thunderstorm),
-                          _tarjetaLarga("Dirección Viento", "${d['viento_dir'] ?? '0'}°", Icons.explore),
+                          _tarjetaLarga(
+                            "Tasa de Lluvia",
+                            "${d['lluvia_rate'] ?? '0'} mm/h",
+                            Icons.thunderstorm,
+                          ),
+                          _tarjetaLarga(
+                            "Dirección Viento",
+                            "${d['viento_dir'] ?? '0'}°",
+                            Icons.explore,
+                          ),
                           const SeccionSolar(),
                           FichaLunarEstelar(urlFondo: imgLuna),
                         ],
@@ -192,11 +264,18 @@ class PantallaPrincipal extends StatelessWidget {
       children: [
         Icon(icono, color: Colors.white70, size: 28),
         const SizedBox(height: 6),
-        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
+        ),
         Text(
           valor,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ],
     );
@@ -214,9 +293,19 @@ class PantallaPrincipal extends StatelessWidget {
         children: [
           Icon(icono, color: Colors.white70),
           const SizedBox(width: 20),
-          Text(label, style: const TextStyle(color: Colors.white, fontSize: 16)),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white, fontSize: 16),
+          ),
           const Spacer(),
-          Text(valor, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+          Text(
+            valor,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
         ],
       ),
     );
@@ -234,11 +323,26 @@ class SeccionSolar extends StatelessWidget {
     const double lon = -5.9333;
     const double zenit = 90.833;
 
-    double gamma = 2 * math.pi / 365 * (diaDelAnio - 1 + (ahora.hour - 12) / 24);
-    double eqtime = 229.18 * (0.000075 + 0.001868 * math.cos(gamma) - 0.032077 * math.sin(gamma) - 0.014615 * math.cos(2 * gamma) - 0.040849 * math.sin(2 * gamma));
-    double decl = 0.006918 - 0.399912 * math.cos(gamma) + 0.070257 * math.sin(gamma) - 0.006758 * math.cos(2 * gamma) + 0.000907 * math.sin(2 * gamma);
+    double gamma =
+        2 * math.pi / 365 * (diaDelAnio - 1 + (ahora.hour - 12) / 24);
+    double eqtime =
+        229.18 *
+        (0.000075 +
+            0.001868 * math.cos(gamma) -
+            0.032077 * math.sin(gamma) -
+            0.014615 * math.cos(2 * gamma) -
+            0.040849 * math.sin(2 * gamma));
+    double decl =
+        0.006918 -
+        0.399912 * math.cos(gamma) +
+        0.070257 * math.sin(gamma) -
+        0.006758 * math.cos(2 * gamma) +
+        0.000907 * math.sin(2 * gamma);
 
-    double cosHa = (math.cos(zenit * math.pi / 180) / (math.cos(lat * math.pi / 180) * math.cos(decl))) - (math.tan(lat * math.pi / 180) * math.tan(decl));
+    double cosHa =
+        (math.cos(zenit * math.pi / 180) /
+            (math.cos(lat * math.pi / 180) * math.cos(decl))) -
+        (math.tan(lat * math.pi / 180) * math.tan(decl));
     cosHa = cosHa.clamp(-1.0, 1.0);
     double ha = math.acos(cosHa) * 180 / math.pi;
 
@@ -246,8 +350,16 @@ class SeccionSolar extends StatelessWidget {
     double sunsetUTC = 720 - 4 * (lon - ha) - eqtime;
 
     int offsetMinutos = ahora.timeZoneOffset.inMinutes;
-    final amanecer = DateTime(ahora.year, ahora.month, ahora.day).add(Duration(minutes: sunriseUTC.toInt() + offsetMinutos));
-    final atardecer = DateTime(ahora.year, ahora.month, ahora.day).add(Duration(minutes: sunsetUTC.toInt() + offsetMinutos));
+    final amanecer = DateTime(
+      ahora.year,
+      ahora.month,
+      ahora.day,
+    ).add(Duration(minutes: sunriseUTC.toInt() + offsetMinutos));
+    final atardecer = DateTime(
+      ahora.year,
+      ahora.month,
+      ahora.day,
+    ).add(Duration(minutes: sunsetUTC.toInt() + offsetMinutos));
 
     double progreso = 0.0;
     if (ahora.isAfter(amanecer) && ahora.isBefore(atardecer)) {
@@ -267,7 +379,10 @@ class SeccionSolar extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const Text("Trayectoria Solar (San Román)", style: TextStyle(color: Colors.white70, fontSize: 14)),
+          const Text(
+            "Trayectoria Solar (San Román)",
+            style: TextStyle(color: Colors.white70, fontSize: 14),
+          ),
           const SizedBox(height: 30),
           SizedBox(
             height: 80,
@@ -290,8 +405,18 @@ class SeccionSolar extends StatelessWidget {
   Widget _columnaDato(String titulo, String valor) {
     return Column(
       children: [
-        Text(titulo, style: const TextStyle(color: Colors.white60, fontSize: 11)),
-        Text(valor, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+        Text(
+          titulo,
+          style: const TextStyle(color: Colors.white60, fontSize: 11),
+        ),
+        Text(
+          valor,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
       ],
     );
   }
@@ -302,18 +427,30 @@ class ArcoSolarPainter extends CustomPainter {
   ArcoSolarPainter(this.progreso);
   @override
   void paint(Canvas canvas, Size size) {
-    final paintFondo = Paint()..color = Colors.white.withValues(alpha: 0.1)..style = PaintingStyle.stroke..strokeWidth = 3;
+    final paintFondo = Paint()
+      ..color = Colors.white.withValues(alpha: 0.1)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
     Path path = Path();
-    path.addArc(Rect.fromLTWH(0, 0, size.width, size.height * 2), math.pi, math.pi);
+    path.addArc(
+      Rect.fromLTWH(0, 0, size.width, size.height * 2),
+      math.pi,
+      math.pi,
+    );
     canvas.drawPath(path, paintFondo);
     double angulo = math.pi + (progreso * math.pi);
     double x = (size.width / 2) + (size.width / 2) * math.cos(angulo);
     double y = (size.height) + (size.height) * math.sin(angulo);
     if (progreso > 0 && progreso < 1) {
       canvas.drawCircle(Offset(x, y), 8, Paint()..color = Colors.amber);
-      canvas.drawCircle(Offset(x, y), 12, Paint()..color = Colors.amber.withValues(alpha: 0.3));
+      canvas.drawCircle(
+        Offset(x, y),
+        12,
+        Paint()..color = Colors.amber.withValues(alpha: 0.3),
+      );
     }
   }
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
@@ -333,12 +470,46 @@ class FichaLunarEstelar extends StatelessWidget {
     double iluminacion = (1 - math.cos(2 * math.pi * phase)) / 2 * 100;
     double rad = (diff * 360 / 27.55455) * (math.pi / 180);
     double distanciaKm = 385000 - 20905 * math.cos(rad);
-    List<String> signos = ["Aries ♈", "Tauro ♉", "Géminis ♊", "Cáncer ♋", "Leo ♌", "Virgo ♍", "Libra ♎", "Escorpio ♏", "Sagitario ♐", "Capricornio ♑", "Acuario ♒", "Piscis ♓"];
+    List<String> signos = [
+      "Aries ♈",
+      "Tauro ♉",
+      "Géminis ♊",
+      "Cáncer ♋",
+      "Leo ♌",
+      "Virgo ♍",
+      "Libra ♎",
+      "Escorpio ♏",
+      "Sagitario ♐",
+      "Capricornio ♑",
+      "Acuario ♒",
+      "Piscis ♓",
+    ];
     int indexSigno = (((diff + 9.2) % 27.3216) / 2.276).floor() % 12;
 
-    String nombreFase = (edadLuna < 1.84 || edadLuna > 27.67) ? "Luna Nueva" : (edadLuna < 5.53) ? "Luna Creciente" : (edadLuna < 9.22) ? "Cuarto Creciente" : (edadLuna < 12.91) ? "Gibosa Creciente" : (edadLuna < 16.60) ? "Luna Llena" : (edadLuna < 20.29) ? "Gibosa Menguante" : (edadLuna < 23.98) ? "Cuarto Menguante" : "Luna Menguante";
+    String nombreFase = (edadLuna < 1.84 || edadLuna > 27.67)
+        ? "Luna Nueva"
+        : (edadLuna < 5.53)
+        ? "Luna Creciente"
+        : (edadLuna < 9.22)
+        ? "Cuarto Creciente"
+        : (edadLuna < 12.91)
+        ? "Gibosa Creciente"
+        : (edadLuna < 16.60)
+        ? "Luna Llena"
+        : (edadLuna < 20.29)
+        ? "Gibosa Menguante"
+        : (edadLuna < 23.98)
+        ? "Cuarto Menguante"
+        : "Luna Menguante";
 
-    return {'fase': nombreFase, 'iluminacion': iluminacion.toStringAsFixed(1), 'edad': edadLuna.toStringAsFixed(1), 'distancia': "${NumberFormat('#,###', 'es_ES').format(distanciaKm)} Km", 'signo': signos[indexSigno], 'progreso': phase};
+    return {
+      'fase': nombreFase,
+      'iluminacion': iluminacion.toStringAsFixed(1),
+      'edad': edadLuna.toStringAsFixed(1),
+      'distancia': "${NumberFormat('#,###', 'es_ES').format(distanciaKm)} Km",
+      'signo': signos[indexSigno],
+      'progreso': phase,
+    };
   }
 
   @override
@@ -348,41 +519,132 @@ class FichaLunarEstelar extends StatelessWidget {
     final ahora = DateTime.now();
     int baseRiseMinutes = 424;
     int riseShift = (double.parse(datos['edad']) * 50.4).toInt();
-    final salidaLuna = DateTime(ahora.year, ahora.month, ahora.day).add(Duration(minutes: baseRiseMinutes + riseShift));
+    final salidaLuna = DateTime(
+      ahora.year,
+      ahora.month,
+      ahora.day,
+    ).add(Duration(minutes: baseRiseMinutes + riseShift));
     final puestaLuna = salidaLuna.add(const Duration(hours: 12, minutes: 30));
-    double progresoArco = (ahora.isAfter(salidaLuna) && ahora.isBefore(puestaLuna)) ? ahora.difference(salidaLuna).inMinutes / puestaLuna.difference(salidaLuna).inMinutes : 0.0;
+    double progresoArco =
+        (ahora.isAfter(salidaLuna) && ahora.isBefore(puestaLuna))
+        ? ahora.difference(salidaLuna).inMinutes /
+              puestaLuna.difference(salidaLuna).inMinutes
+        : 0.0;
 
-    final String urlFinal = urlFondo.isNotEmpty ? urlFondo : "https://raw.githubusercontent.com/valtuille9-arch/fondos-app/0c40cbc38afef282b7c19e2e0990ead88bdcaa18/fondo_luna.png";
+    final String urlFinal = urlFondo.isNotEmpty
+        ? urlFondo
+        : "https://raw.githubusercontent.com/valtuille9-arch/fondos-app/main/fondo_luna.png";
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 15),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(30), color: Colors.white),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30),
+        color: Colors.white,
+      ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(30),
         child: Stack(
           children: [
-            Positioned.fill(child: CachedNetworkImage(imageUrl: urlFinal, fit: BoxFit.cover)),
-            Positioned.fill(child: Container(color: Colors.black.withValues(alpha: 0.5))),
+            Positioned.fill(
+              child: CachedNetworkImage(imageUrl: urlFinal, fit: BoxFit.cover),
+            ),
+            Positioned.fill(
+              child: Container(color: Colors.black.withValues(alpha: 0.5)),
+            ),
             Padding(
               padding: const EdgeInsets.all(25),
               child: Column(
                 children: [
-                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.stars, color: Colors.white30, size: 18), const SizedBox(width: 8), Text(datos['signo'], style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w300))]),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.stars, color: Colors.white30, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        datos['signo'],
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w300,
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 20),
-                  Stack(alignment: Alignment.center, children: [
-                    SizedBox(height: 100, width: double.infinity, child: CustomPaint(painter: ArcoLunarPainter(progresoArco))),
-                    Stack(alignment: Alignment.center, children: [
-                      ClipOval(child: Image.asset('assets/luna_real.png', height: 120, width: 120, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.nightlight_round, color: Colors.white24, size: 80))),
-                      CustomPaint(size: const Size(120, 120), painter: SombraLunarPainter(phase)),
-                    ]),
-                  ]),
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        height: 100,
+                        width: double.infinity,
+                        child: CustomPaint(
+                          painter: ArcoLunarPainter(progresoArco),
+                        ),
+                      ),
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          ClipOval(
+                            child: Image.asset(
+                              'assets/luna_real.png',
+                              height: 120,
+                              width: 120,
+                              fit: BoxFit.cover,
+                              errorBuilder: (c, e, s) => const Icon(
+                                Icons.nightlight_round,
+                                color: Colors.white24,
+                                size: 80,
+                              ),
+                            ),
+                          ),
+                          CustomPaint(
+                            size: const Size(120, 120),
+                            painter: SombraLunarPainter(phase),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 15),
-                  Text(datos['fase'], style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-                  Text("Iluminación: ${datos['iluminacion']}%", style: const TextStyle(color: Colors.white54, fontSize: 16)),
-                  const Divider(color: Colors.white10, height: 40, thickness: 1),
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [_fichaDato("EDAD LUNAR", "${datos['edad']} d"), _fichaDato("DISTANCIA", datos['distancia']), _fichaDato("ESTADO", "Visible")]),
+                  Text(
+                    datos['fase'],
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    "Iluminación: ${datos['iluminacion']}%",
+                    style: const TextStyle(color: Colors.white54, fontSize: 16),
+                  ),
+                  const Divider(
+                    color: Colors.white10,
+                    height: 40,
+                    thickness: 1,
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _fichaDato("EDAD LUNAR", "${datos['edad']} d"),
+                      _fichaDato("DISTANCIA", datos['distancia']),
+                      _fichaDato("ESTADO", "Visible"),
+                    ],
+                  ),
                   const SizedBox(height: 20),
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [_fichaDato("SALIDA LUNA", DateFormat('HH:mm').format(salidaLuna)), _fichaDato("PUESTA LUNA", DateFormat('HH:mm').format(puestaLuna))]),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _fichaDato(
+                        "SALIDA LUNA",
+                        DateFormat('HH:mm').format(salidaLuna),
+                      ),
+                      _fichaDato(
+                        "PUESTA LUNA",
+                        DateFormat('HH:mm').format(puestaLuna),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -393,7 +655,27 @@ class FichaLunarEstelar extends StatelessWidget {
   }
 
   Widget _fichaDato(String titulo, String valor) {
-    return Column(children: [Text(titulo, style: const TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold)), const SizedBox(height: 4), Text(valor, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500))]);
+    return Column(
+      children: [
+        Text(
+          titulo,
+          style: const TextStyle(
+            color: Colors.white38,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          valor,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -402,9 +684,16 @@ class ArcoLunarPainter extends CustomPainter {
   ArcoLunarPainter(this.progreso);
   @override
   void paint(Canvas canvas, Size size) {
-    final paintFondo = Paint()..color = Colors.white.withValues(alpha: 0.05)..style = PaintingStyle.stroke..strokeWidth = 2;
+    final paintFondo = Paint()
+      ..color = Colors.white.withValues(alpha: 0.05)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
     Path path = Path();
-    path.addArc(Rect.fromLTWH(0, 0, size.width, size.height * 2.5), math.pi, math.pi);
+    path.addArc(
+      Rect.fromLTWH(0, 0, size.width, size.height * 2.5),
+      math.pi,
+      math.pi,
+    );
     canvas.drawPath(path, paintFondo);
     if (progreso > 0 && progreso < 1) {
       double angulo = math.pi + (progreso * math.pi);
@@ -413,6 +702,7 @@ class ArcoLunarPainter extends CustomPainter {
       canvas.drawCircle(Offset(x, y), 5, Paint()..color = Colors.white70);
     }
   }
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
@@ -422,7 +712,9 @@ class SombraLunarPainter extends CustomPainter {
   SombraLunarPainter(this.fase);
   @override
   void paint(Canvas canvas, Size size) {
-    final paintSombra = Paint()..color = Colors.black.withValues(alpha: 0.75)..style = PaintingStyle.fill;
+    final paintSombra = Paint()
+      ..color = Colors.black.withValues(alpha: 0.75)
+      ..style = PaintingStyle.fill;
     final Rect rect = Offset.zero & size;
     final double centroX = size.width / 2;
     Path path = Path();
@@ -430,13 +722,34 @@ class SombraLunarPainter extends CustomPainter {
     double anchoSombra = (centroX * cosFase).abs();
     if (fase <= 0.5) {
       path.addArc(rect, math.pi / 2, math.pi);
-      path.arcTo(Rect.fromLTRB(centroX - anchoSombra, 0, centroX + anchoSombra, size.height), -math.pi / 2, cosFase > 0 ? math.pi : -math.pi, false);
+      path.arcTo(
+        Rect.fromLTRB(
+          centroX - anchoSombra,
+          0,
+          centroX + anchoSombra,
+          size.height,
+        ),
+        -math.pi / 2,
+        cosFase > 0 ? math.pi : -math.pi,
+        false,
+      );
     } else {
       path.addArc(rect, -math.pi / 2, math.pi);
-      path.arcTo(Rect.fromLTRB(centroX - anchoSombra, 0, centroX + anchoSombra, size.height), math.pi / 2, cosFase > 0 ? math.pi : -math.pi, false);
+      path.arcTo(
+        Rect.fromLTRB(
+          centroX - anchoSombra,
+          0,
+          centroX + anchoSombra,
+          size.height,
+        ),
+        math.pi / 2,
+        cosFase > 0 ? math.pi : -math.pi,
+        false,
+      );
     }
     canvas.drawPath(path, paintSombra);
   }
+
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => true;
 }
