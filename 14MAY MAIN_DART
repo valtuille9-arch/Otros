@@ -216,7 +216,7 @@ class PantallaPrincipal extends StatelessWidget {
                       child: Column(
                         children: [
                           Text(
-                            "$temp°",
+                            "$temp°C",
                             style: const TextStyle(
                               fontSize: 100,
                               fontWeight: FontWeight.w200,
@@ -233,28 +233,28 @@ class PantallaPrincipal extends StatelessWidget {
                             childAspectRatio: 0.85,
                             children: [
                               _miniDato(
-                                "Sensación",
-                                "${d['sensacion'] ?? '--'}°C",
+                                "Sensación Térmica",
+                                "${d['sensacion'] ?? '--'} °C",
                                 Icons.thermostat,
                               ),
                               _miniDato(
-                                "Rocío",
-                                "${d['dew_point'] ?? '--'}°C",
+                                "Punto de Rocío",
+                                "${d['dew_point'] ?? '--'} °C",
                                 Icons.water,
                               ),
                               _miniDato(
                                 "Humedad",
-                                "${d['humedad'] ?? '--'}%",
+                                "${d['humedad'] ?? '--'} %",
                                 Icons.water_drop,
                               ),
                               _miniDato(
-                                "Lluvia Hoy",
+                                "Lluvia Acumulada Hoy",
                                 "${d['lluvia_dia'] ?? '--'}mm",
                                 Icons.umbrella,
                               ),
                               _miniDato(
                                 "Presión",
-                                "${d['presion'] ?? '--'}",
+                                "${d['presion'] ?? '--'} hPa",
                                 Icons.compress,
                               ),
                               _miniDato(
@@ -264,17 +264,17 @@ class PantallaPrincipal extends StatelessWidget {
                               ),
                               _miniDato(
                                 "Viento",
-                                "${d['viento'] ?? '--'}km/h",
+                                "${d['viento'] ?? '--'} km/h",
                                 Icons.air,
                               ),
                               _miniDato(
                                 "Ráfaga",
-                                "${d['viento_racha'] ?? '--'}",
+                                "${d['viento_racha'] ?? '--'} Km/h",
                                 Icons.wind_power,
                               ),
                               _miniDato(
                                 "Solar",
-                                "${d['solar'] ?? '--'}w/m²",
+                                "${d['solar'] ?? '--'} W/m²",
                                 Icons.light_mode,
                               ),
                             ],
