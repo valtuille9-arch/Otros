@@ -288,7 +288,7 @@ class PantallaPrincipal extends StatelessWidget {
                                 childAspectRatio: 0.85,
                                 children: [
                                   _miniDato(
-                                    "Sensación\nTérmica",                                                                   
+                                    "Sensación\nTérmica",
                                     "${d['sensacion'] ?? '--'} °C",
                                     Icons.thermostat,
                                   ),
@@ -354,6 +354,35 @@ class PantallaPrincipal extends StatelessWidget {
                   ), // Cierra CustomScrollView
                 ], // Cierra children del Stack
               ), // Cierra Stack
+              bottomNavigationBar: SizedBox(
+                // Usar SizedBox es más limpio para la altura
+                height: 55, // Altura ajustada
+                child: BottomAppBar(
+                  color: Colors.white.withValues(alpha: 0.9),
+                  elevation: 0,
+                  padding: EdgeInsets.zero, // <-- SOLUCIÓN AL ERROR DE 'int'
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.info_outline,
+                          color: Colors.black54,
+                        ),
+                        iconSize: 22,
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const PantallaInformacion(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ); // Cierra Scaffold
           }, // Cierra el builder de snapshotClima (el segundo Stream)
         ); // Cierra el StreamBuilder de clima_actual
@@ -370,7 +399,11 @@ class PantallaPrincipal extends StatelessWidget {
         const SizedBox(height: 5),
         Text(
           titulo,
-          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
           textAlign: TextAlign.center,
         ),
         Text(
@@ -402,7 +435,11 @@ class PantallaPrincipal extends StatelessWidget {
             children: [
               Text(
                 titulo,
-                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               Text(
                 valor,
@@ -491,7 +528,11 @@ class SeccionSolar extends StatelessWidget {
           const Text(
             "Trayectoria Solar\n(San Román de la Vega)",
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 30),
           SizedBox(
@@ -517,7 +558,11 @@ class SeccionSolar extends StatelessWidget {
       children: [
         Text(
           titulo,
-          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         Text(
           valor,
@@ -910,4 +955,116 @@ Map<String, DateTime> calcularHorasSolares() {
       ahora.day,
     ).add(Duration(minutes: sunsetUTC.toInt() + offsetMinutos)),
   };
+}
+
+class PantallaInformacion extends StatelessWidget {
+  const PantallaInformacion({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        centerTitle: true,
+        title: const Text("Información"),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black, // Texto negro
+        elevation: 1,
+      ),
+      backgroundColor: Colors.white,
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('app_config')
+            .doc('informacion')
+            .snapshots(),
+        builder: (context, snapshot) {
+          // 1. Estado de carga
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          // 2. Control de errores de conexión o permisos
+          if (snapshot.hasError) {
+            return Center(child: Text("Error de conexión: ${snapshot.error}"));
+          }
+
+          // 3. Verificar si el documento existe
+          if (!snapshot.hasData || !snapshot.data!.exists) {
+            return const Center(
+              child: Text("El documento 'informacion' no existe en Firestore"),
+            );
+          }
+
+          // 4. Extraer datos con seguridad
+          final Map<String, dynamic> data =
+              snapshot.data!.data() as Map<String, dynamic>;
+
+          // Verificamos si existe el campo 'bloques'
+          if (!data.containsKey('bloques')) {
+            return const Center(
+              child: Text("No se encontró el campo 'bloques' en el documento"),
+            );
+          }
+
+          final List<dynamic> bloques = data['bloques'] ?? [];
+
+          if (bloques.isEmpty) {
+            return const Center(child: Text("La lista de bloques está vacía"));
+          }
+
+          // 5. Renderizar la lista
+          return ListView.builder(
+            padding: const EdgeInsets.all(20),
+            itemCount: bloques.length,
+            itemBuilder: (context, index) {
+              final item = bloques[index];
+
+              // Verificamos que sea un Mapa (como se ve en tus imágenes 350aff.png y 35835a.png)
+              if (item is Map) {
+                // Caso Texto: busca la clave 'texto'
+                if (item.containsKey('texto')) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 15),
+                    child: Text(
+                      item['texto'].toString(),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.black87,
+                        height: 1.5,
+                      ),
+                    ),
+                  );
+                }
+
+                // Caso Imagen: busca la clave 'imagen'
+                if (item.containsKey('imagen')) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(15),
+                      child: Image.network(
+                        item['imagen'].toString(),
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(
+                              Icons.broken_image,
+                              size: 50,
+                              color: Colors.grey,
+                            ),
+                      ),
+                    ),
+                  );
+                }
+              }
+
+              // Si el elemento no es un mapa reconocido, muestra el valor crudo para diagnóstico
+              return Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text("Dato no reconocido: $item"),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
 }
