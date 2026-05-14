@@ -159,14 +159,26 @@ class PantallaPrincipal extends StatelessWidget {
                     ),
                   ),
                   // Capa 2: Filtro oscuro para legibilidad
-                  ValueListenableBuilder<double>(
-                    valueListenable: opacidadFondoNotifier,
-                    builder: (context, valorOpacidad, child) {
+                  // Sustituye el ValueListenableBuilder por esto:
+                  StreamBuilder(
+                    stream: Stream.periodic(
+                      const Duration(minutes: 1),
+                    ), // Se revisa cada minuto
+                    builder: (context, snapshot) {
+                      final horas = calcularHorasSolares();
+                      final ahora = DateTime.now();
+
+                      // Si estamos entre el amanecer y el atardecer -> 0.15 (claro), si no -> 0.65 (oscuro)
+                      double opacidad =
+                          (ahora.isAfter(horas['amanecer']!) &&
+                              ahora.isBefore(horas['atardecer']!))
+                          ? 0.15
+                          : 0.65;
+
                       return Positioned.fill(
                         child: AnimatedContainer(
                           duration: const Duration(seconds: 3),
-                          curve: Curves.easeInOut,
-                          color: Colors.black.withValues(alpha: valorOpacidad),
+                          color: Colors.black.withValues(alpha: opacidad),
                         ),
                       );
                     },
@@ -415,18 +427,6 @@ class SeccionSolar extends StatelessWidget {
     } else if (ahora.isAfter(atardecer)) {
       progreso = 1.0;
     }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      double nuevaOpacidad =
-          (ahora.isAfter(amanecer) && ahora.isBefore(atardecer))
-          ? 0.15 // Opacidad de día (claro)
-          : 0.65; // Opacidad de noche (oscuro)
-
-      // Solo actualizamos si el valor ha cambiado para ahorrar batería
-      if (opacidadFondoNotifier.value != nuevaOpacidad) {
-        opacidadFondoNotifier.value = nuevaOpacidad;
-      }
-    });
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 10),
@@ -810,4 +810,52 @@ class SombraLunarPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => true;
+}
+
+Map<String, DateTime> calcularHorasSolares() {
+  final ahora = DateTime.now();
+  int diaDelAnio = int.parse(DateFormat("D").format(ahora));
+  const double lat = 42.4833;
+  const double lon = -5.9333;
+  const double zenit = 90.833;
+
+  double gamma = 2 * math.pi / 365 * (diaDelAnio - 1 + (ahora.hour - 12) / 24);
+  double eqtime =
+      229.18 *
+      (0.000075 +
+          0.001868 * math.cos(gamma) -
+          0.032077 * math.sin(gamma) -
+          0.014615 * math.cos(2 * gamma) -
+          0.040849 * math.sin(2 * gamma));
+  double decl =
+      0.006918 -
+      0.399912 * math.cos(gamma) +
+      0.070257 * math.sin(gamma) -
+      0.006758 * math.cos(2 * gamma) +
+      0.000907 * math.sin(2 * gamma);
+
+  double cosHa =
+      (math.cos(zenit * math.pi / 180) /
+          (math.cos(lat * math.pi / 180) * math.cos(decl))) -
+      (math.tan(lat * math.pi / 180) * math.tan(decl));
+  cosHa = cosHa.clamp(-1.0, 1.0);
+  double ha = math.acos(cosHa) * 180 / math.pi;
+
+  double sunriseUTC = 720 - 4 * (lon + ha) - eqtime;
+  double sunsetUTC = 720 - 4 * (lon - ha) - eqtime;
+
+  int offsetMinutos = ahora.timeZoneOffset.inMinutes;
+
+  return {
+    'amanecer': DateTime(
+      ahora.year,
+      ahora.month,
+      ahora.day,
+    ).add(Duration(minutes: sunriseUTC.toInt() + offsetMinutos)),
+    'atardecer': DateTime(
+      ahora.year,
+      ahora.month,
+      ahora.day,
+    ).add(Duration(minutes: sunsetUTC.toInt() + offsetMinutos)),
+  };
 }
