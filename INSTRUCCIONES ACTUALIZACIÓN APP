@@ -1,0 +1,8 @@
+1. En tu código de Flutter (main.dart)
+Cuando modifiques tu app, añadas funciones y decidas que ya está lista para compilarse como la nueva versión, tienes que ir arriba del todo de tu main.dart y cambiar tu constante manual.
+
+Si la nueva va a ser la versión 1.0.1, cambias la línea para que quede así antes de generar el APK:
+
+Dart
+const String versionInstalada = "1.0.1"; // <-- Cambias el "1.0.0" por "1.0.1"
+Luego, compilas tu APK (o App Bundle) de manera normal y lo subes a tu GitHub Releases para que la gente se lo descargue.
