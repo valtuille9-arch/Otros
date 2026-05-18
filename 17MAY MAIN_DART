@@ -360,11 +360,8 @@ class PantallaPrincipal extends StatelessWidget {
                                 "${d['lluvia_rate'] ?? '0'} mm/h",
                                 Icons.thunderstorm,
                               ),
-                              _tarjetaLarga(
-                                "Dirección Viento",
-                                "${d['viento_dir'] ?? '0'}°",
-                                Icons.explore,
-                              ),
+                              // Reemplazamos la tarjeta vieja por el nuevo componente con rosa de los vientos
+                              tarjetaVientoConRosa(d),
                               const SeccionSolar(),
                               FichaLunarEstelar(urlFondo: imgLuna),
                             ]), // Cierra SliverChildListDelegate
@@ -1112,6 +1109,102 @@ void mostrarAvisoActualizacion(BuildContext context, String url) {
           ),
         ],
       ),
+    ),
+  );
+}
+
+String obtenerPuntoCardinal(double? grados) {
+  if (grados == null) return "N/A";
+  double g = grados % 360;
+
+  if (g >= 337.5 || g < 22.5) return "N";
+  if (g >= 22.5 && g < 67.5) return "NE";
+  if (g >= 67.5 && g < 112.5) return "E";
+  if (g >= 112.5 && g < 157.5) return "SE";
+  if (g >= 157.5 && g < 202.5) return "S";
+  if (g >= 202.5 && g < 247.5) return "SO";
+  if (g >= 247.5 && g < 292.5) return "O";
+  return "NO";
+}
+
+Widget tarjetaVientoConRosa(Map<String, dynamic>? datos) {
+  // 1. Extraemos y convertimos los grados del viento de Firebase de forma segura
+  double gradosViento =
+      double.tryParse(datos?['viento_dir']?.toString() ?? '0') ?? 0.0;
+  String letrasCardinal = obtenerPuntoCardinal(gradosViento);
+
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: 0.1), // Fondo translúcido corregido
+      borderRadius: BorderRadius.circular(15),
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // --- TEXTO DE LA IZQUIERDA ---
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "Dirección Viento",
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              "${gradosViento.toStringAsFixed(0)}° $letrasCardinal",
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+
+        // --- BRÚJULA GRANDE CON AGUJA CENTRADA (Derecha) ---
+        SizedBox(
+          width: 95,
+          height: 95,
+          child: Stack(
+            alignment:
+                Alignment.center, // Centrado base para la esfera de fondo
+            children: [
+              // 1. El fondo de la brújula (Ocupa el espacio completo de 95x95)
+              SizedBox(
+                width: 95,
+                height: 95,
+                child: Image.asset(
+                  'assets/brujula_fondo.png',
+                  fit: BoxFit.contain,
+                ),
+              ),
+
+              // 2. La aguja controlada milimétricamente
+              Positioned(
+                top:
+                    20, // Modifica este número si la aguja se va muy arriba o abajo
+                left:
+                    28, // Modifica este número si la aguja se va muy a la izquierda o derecha
+                child: SizedBox(
+                  width:
+                      53, // Tamaño de la aguja (notablemente más pequeño que la esfera)
+                  height: 53,
+                  child: Transform.rotate(
+                    // Conversión de grados a radianes para la rotación dinámica
+                    angle: (gradosViento * 3.1415926535897932) / 180,
+                    child: Image.asset(
+                      'assets/brujula_flecha.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     ),
   );
 }
